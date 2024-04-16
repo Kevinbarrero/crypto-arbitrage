@@ -12,22 +12,22 @@ const BASEURL = "https://api.binance.com/api/"
 type Binance struct {
 	symbols map[string]global.Symbol
 }
-type symbolReq struct {
-	Symbol string `json:"symbol"`
-}
 
-func (b *Binance) GetSymbols() (map[string]global.Symbol, error) {
+func (b *Binance) PullSymbolsFromAPI() error {
+	type symbolReq struct {
+		Symbol string `json:"symbol"`
+	}
 	requestURL := BASEURL + "v3/ticker/price"
 	res, err := http.Get(requestURL)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer res.Body.Close()
 	// var coins []map[string]interface{}
 	var coins []symbolReq
 	io, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if err := json.Unmarshal([]byte(io), &coins); err == nil {
 		var symbols = make(map[string]global.Symbol)
@@ -35,19 +35,20 @@ func (b *Binance) GetSymbols() (map[string]global.Symbol, error) {
 			symbol := global.Symbol{}
 			symbols[item.Symbol] = symbol
 		}
-		return symbols, nil
+		b.SetSymbols(symbols)
+		return nil
 	}
 
-	return nil, err
+	return err
 
 }
 
-func (b *Binance) GetSymbolsStruct() map[string]global.Symbol {
+func (b *Binance) GetSymbols() map[string]global.Symbol {
 	return b.symbols
 }
-func (b *Binance) SetSymbolsStruct(symbols map[string]global.Symbol) {
+func (b *Binance) SetSymbols(symbols map[string]global.Symbol) {
 	b.symbols = symbols
 }
-func (b *Binance) GetStructName() string {
+func (b *Binance) GetMarketName() string {
 	return "Binance"
 }

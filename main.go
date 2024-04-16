@@ -2,8 +2,8 @@ package main
 
 import (
 	"cryptoarbitrage/global"
-	binance "cryptoarbitrage/market/binance"
-	mex "cryptoarbitrage/market/mexc"
+	binance "cryptoarbitrage/markets/binance"
+	mex "cryptoarbitrage/markets/mexc"
 	"cryptoarbitrage/util"
 	"fmt"
 	"sync"
@@ -15,27 +15,16 @@ func main() {
 	binance := binance.Binance{}
 	mexc := mex.Mexc{}
 	markets = append(markets, &binance, &mexc)
-	// symbols := make(map[string]global.Symbol)
 	ws := sync.WaitGroup{}
-	ws.Add(len(markets))
 	start := time.Now()
-	for _, i := range markets {
-		go func(i global.Market) {
-			start := time.Now()
-			symbols, err := i.GetSymbols()
-			if err != nil {
-				fmt.Println("error", err)
-			}
-			// symbols = util.MergeSymbols(symbols, i_symbols)
-			i.SetSymbolsStruct(symbols)
-			ws.Done()
-			fmt.Println(i.GetStructName(), "exec time", time.Since(start))
-		}(i)
+	for _, market := range markets {
+		ws.Add(1)
+		go global.PullSymbolsHandler(&ws, market)
 	}
 	ws.Wait()
 	fmt.Println("exec time", time.Since(start))
-	symbols := util.MergeSymbols(mexc.GetSymbolsStruct(), binance.GetSymbolsStruct())
-	fmt.Println("Binance", len(binance.GetSymbolsStruct()))
-	fmt.Println("Mexc", len(mexc.GetSymbolsStruct()))
+	symbols := util.MergeSymbols(mexc.GetSymbols(), binance.GetSymbols())
+	fmt.Println("Binance", len(binance.GetSymbols()))
+	fmt.Println("Mexc", len(mexc.GetSymbols()))
 	fmt.Println("symbols", len(symbols))
 }
